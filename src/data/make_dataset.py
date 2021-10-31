@@ -3,10 +3,10 @@ import click
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 from multiprocessing import Pool, Lock
+import numpy as np
 import logging
 import math
 import os
-import numpy as np
 import librosa
 import time
 import json
@@ -16,7 +16,7 @@ logs_format = "%(asctime)s: %(message)s"
 handler = logging.FileHandler('logs//DataRetrievingLogs_' + datetime.now().strftime("%H_%M_%S") + '.log')
 logging.basicConfig(format=logs_format, level=logging.INFO,
                     datefmt="%H:%M:%S")
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 logger.addHandler(handler)
 
 DOB = {'black': '1943',
@@ -96,14 +96,15 @@ def read_all_recordings_of_one_person(database_path, num_segments, folder,):
     logger.info("GET PERSON DATA | %s: finishing data collection with time: %0.2f s", name, end_timer-start_timer)
 
 
-def get_features_multiprocessing(name, folder_path, num_segments, file_path):
+def get_features_multiprocessing(name, folder_path, file_path):
     """
     num_segments: int - in deep learning we do need a lot of data so we will cut the audio into the segments
-    the function written with help of
-    https://youtu.be/szyGiObZymo
+    the function written with help of https://youtu.be/szyGiObZymo
     """
     start_timer = time.perf_counter()
     mfcc_segments = []
+    delta_mfcc_segments = []
+    delta2_mfcc_segments = []
 
     filename = folder_path + r'\\' + file_path
     age = get_person_age(name, file_path)
@@ -113,8 +114,9 @@ def get_features_multiprocessing(name, folder_path, num_segments, file_path):
     n_fft = 2048
 
     duration = librosa.get_duration(signal, sr=sr)
+    num_segments = min(10, math.ceil(1/6 * duration))
     num_samples_per_segment = int((sr * duration) / num_segments)
-    expected_mfcc_vectors_per_segment = math.ceil(num_samples_per_segment / hop_length)
+    expected_vectors_per_segment = math.ceil(num_samples_per_segment / hop_length)
 
     # segment extracting mfcc and spectogram
     for s in range(num_segments):
@@ -125,56 +127,70 @@ def get_features_multiprocessing(name, folder_path, num_segments, file_path):
                                     n_fft=n_fft,
                                     hop_length=hop_length,
                                     n_mfcc=15)
+        delta_mfcc = librosa.feature.delta(mfcc)
+        delta2_mfcc = librosa.feature.delta(mfcc, order=2)
         mfcc = mfcc.T
-        if len(mfcc) == expected_mfcc_vectors_per_segment:
-            # mfcc_mean = np.mean(MFFCs, axis=1).tolist()
-            # mfcc_std = np.std(MFFCs, axis=1).tolist()
-            # mfcc_variance = np.var(MFFCs, axis=1).tolist()
+        delta_mfcc = delta_mfcc.T
+        delta2_mfcc = delta2_mfcc.T
+
+        if len(mfcc) == expected_vectors_per_segment:
             mfcc_segments.append(mfcc.tolist())
+            delta_mfcc_segments.append(delta_mfcc.tolist())
+            delta2_mfcc_segments.append(delta2_mfcc.tolist())
 
     lock.acquire()
-
-    with open("data.json", "r+") as fp:
+    with open(r"D:\PROJEKTY\intonat.dl\data\interim\data.json", "r+") as fp:
         try:
             data = json.load(fp)
         except json.decoder.JSONDecodeError as jde:
             data = {
                 "name": [],
+                "sr": [],
                 "age": [],
                 "mfcc": [],
+                "delta_mfcc": [],
+                "delta2_mfcc": [],
+
             }
         data["name"].append(name)
+        data["sr"].append(sr)
         data["age"].append(age)
         data["mfcc"].append(mfcc_segments)
+        data["delta_mfcc"].append(delta_mfcc_segments)
+        data["delta2_mfcc"].append(delta2_mfcc_segments)
+
         fp.seek(0)  # file pointer to '0' position
         json.dump(data, fp, indent=4)
         fp.truncate()  # clearing all data existing behind fp position after writing to the file
-
     lock.release()
+
     end_timer = time.perf_counter()
-    logger.info("GET FEATURES | %s/%d: finishing feature collection with time: %0.2f s", name, age, end_timer-start_timer)
+    logger.info("GET FEATURES | %s/%d: finishing feature collection with time: %0.2f s",
+                name, age, end_timer-start_timer)
 
 
-@click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
-@click.argument('output_filepath', type=click.Path())
-def main(input_filepath, output_filepath):
+# @click.command()
+# @click.argument('input_filepath', type=click.Path())
+# @click.argument('output_filepath', type=click.Path())
+def main(input_filepath=r"D:\PROJEKTY\intonat.dl\data\raw\TCDSA_main",
+         output_filepath=r"D:\PROJEKTY\intonat.dl\data\interim\data.json"):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    logger = logging.getLogger(__name__)
-    logger.info('making final data set from raw data')
+    with open(output_filepath, 'r+') as f:
+        f.truncate(0)
+    logger.info("Starting data pre-processing")
+    start_timer = time.perf_counter()
+    read_data(input_filepath)
+    end_timer = time.perf_counter()
+    logger.info("Finishing data pre-processing in %d s", end_timer-start_timer)
 
 
 if __name__ == '__main__':
-    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_fmt)
-
     # not used in this stub but often useful for finding various files
     project_dir = Path(__file__).resolve().parents[2]
 
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
     load_dotenv(find_dotenv())
-
     main()
