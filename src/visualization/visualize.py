@@ -1,6 +1,8 @@
 import librosa
+import librosa.display
 import matplotlib.pyplot as plt
 import json
+import numpy as np
 
 
 def plot_spectogram_db(y_signal, sr, y_axis="linear"):
@@ -10,17 +12,16 @@ def plot_spectogram_db(y_signal, sr, y_axis="linear"):
                              sr=sr,
                              x_axis="time",
                              y_axis=y_axis)
-    plt.colorbar(format="%_2.f")
+    plt.colorbar(format="%2.f")
     plt.show()
 
 
-def plot_mfccs(mffcs, sr):
+def plot_mfcc(mfcc, sr):
     plt.figure(figsize=(25, 10))
-    librosa.display.specshow(mffcs,
+    librosa.display.specshow(np.array(mfcc).T,
                              x_axis="time",
                              sr=sr)
-    plt.colorbar(format="%_2.f")
-    plt.show()
+    plt.colorbar(format="%2.f")
 
 
 def main(input_file=r"D:\PROJEKTY\intonat.dl\data\interim\data.json"):
@@ -31,9 +32,10 @@ def main(input_file=r"D:\PROJEKTY\intonat.dl\data\interim\data.json"):
         delta_mfcc = data["delta_mfcc"][0][0]
         delta2_mfcc = data["delta2_mfcc"][0][0]
         sr = data["sr"][0]
-        plot_mfccs(mfcc, sr)
-        plot_mfccs(delta_mfcc, sr)
-        plot_mfccs(delta2_mfcc, sr)
+        plot_mfcc(mfcc, sr)
+        plot_mfcc(delta_mfcc, sr)
+        plot_mfcc(delta2_mfcc, sr)
+        plt.show()
 
 
 if __name__ == "__main__":

@@ -75,22 +75,22 @@ def run_multiprocessing_on_loop_over_path(**kwargs):
         pool.starmap(multiprocessing_func, multiprocessing_args)
 
 
-def read_data(main_folder_path='TCDSA_main', num_segments=10, ):
+def read_data(main_folder_path='TCDSA_main', ):
     # enumerate is used for debugging and testing
     for i, folder_path in enumerate(os.listdir(main_folder_path)):
-        # if i > 2:
-        #     break
-        read_all_recordings_of_one_person(main_folder_path, num_segments, folder_path,)
+        if i > 2:
+            break
+        read_all_recordings_of_one_person(main_folder_path, folder_path,)
 
 
-def read_all_recordings_of_one_person(database_path, num_segments, folder,):
+def read_all_recordings_of_one_person(database_path, folder,):
     start_timer = time.perf_counter()
     name = folder
     logger.info("GET PERSON DATA | %s: starting data collection", name)
     folder_path = database_path + r"\\" + folder
     run_multiprocessing_on_loop_over_path(
         looping_folder=folder_path,
-        args=[name, folder_path, num_segments, ],
+        args=[name, folder_path, ],
         func=get_features_multiprocessing,)
     end_timer = time.perf_counter()
     logger.info("GET PERSON DATA | %s: finishing data collection with time: %0.2f s", name, end_timer-start_timer)
@@ -105,7 +105,7 @@ def get_features_multiprocessing(name, folder_path, file_path):
     mfcc_segments = []
     delta_mfcc_segments = []
     delta2_mfcc_segments = []
-
+    fundamental_frequency_segments = []
     filename = folder_path + r'\\' + file_path
     age = get_person_age(name, file_path)
     logger.info("GET FEATURES | %s/%d: starting feature collection", name, age)
@@ -118,12 +118,20 @@ def get_features_multiprocessing(name, folder_path, file_path):
     num_samples_per_segment = int((sr * duration) / num_segments)
     expected_vectors_per_segment = math.ceil(num_samples_per_segment / hop_length)
 
-    # segment extracting mfcc and spectogram
+    # segment extracting to get more features
     for s in range(num_segments):
-
         start_sample = num_samples_per_segment * s
         finish_sample = start_sample + num_samples_per_segment
-        mfcc = librosa.feature.mfcc(signal[start_sample:finish_sample],
+        sampled_signal = signal[start_sample:finish_sample]
+
+        fundamental_frequency = librosa.pyin(sampled_signal,
+                                             fmin=librosa.note_to_hz('C2'),
+                                             fmax=librosa.note_to_hz('C7'),
+                                             hop_length=hop_length,
+                                             )
+        fundamental_frequency_segments.append(fundamental_frequency)
+
+        mfcc = librosa.feature.mfcc(sampled_signal,
                                     n_fft=n_fft,
                                     hop_length=hop_length,
                                     n_mfcc=15)
@@ -147,10 +155,10 @@ def get_features_multiprocessing(name, folder_path, file_path):
                 "name": [],
                 "sr": [],
                 "age": [],
+                "fundamental_frequency": [],
                 "mfcc": [],
                 "delta_mfcc": [],
                 "delta2_mfcc": [],
-
             }
         data["name"].append(name)
         data["sr"].append(sr)
@@ -169,9 +177,9 @@ def get_features_multiprocessing(name, folder_path, file_path):
                 name, age, end_timer-start_timer)
 
 
-# @click.command()
-# @click.argument('input_filepath', type=click.Path())
-# @click.argument('output_filepath', type=click.Path())
+@click.command()
+@click.argument('input_filepath', type=click.Path())
+@click.argument('output_filepath', type=click.Path())
 def main(input_filepath=r"D:\PROJEKTY\intonat.dl\data\raw\TCDSA_main",
          output_filepath=r"D:\PROJEKTY\intonat.dl\data\interim\data.json"):
     """ Runs data processing scripts to turn raw data from (../raw) into
