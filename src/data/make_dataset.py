@@ -96,6 +96,21 @@ def read_all_recordings_of_one_person(database_path, folder,):
     logger.info("GET PERSON DATA | %s: finishing data collection with time: %0.2f s", name, end_timer-start_timer)
 
 
+def HNR(signal, sr, window_length):
+    """
+    HNR extraction -> https://www.scitepress.org/Papers/2009/15529/15529.pdf
+    A NEW ACCURATE METHOD OF HARMONIC-TO-NOISERATIO EXTRACTION
+    Ricardo J. T. de Sousa - School of Engineering , University of Porto, Rua Roberto Frias, Porto, Portugal
+    Robert Komar implementation 2021
+    """
+    h_range = range(window_length/2)
+    s = np.abs(librosa.stft(signal))
+    fft_freqs = librosa.fft_frequencies(sr=sr)
+    s_harm = librosa.interp_harmonics(s, fft_freqs, h_range, axis=0)
+    noise_spec = s[h_range::] - s_harm
+    return 10*np.log(np.sum(s_harm**2) / np.sum(noise_spec**2))
+
+
 def get_features_multiprocessing(name, folder_path, file_path):
     """
     num_segments: int - in deep learning we do need a lot of data so we will cut the audio into the segments
@@ -106,6 +121,8 @@ def get_features_multiprocessing(name, folder_path, file_path):
     delta_mfcc_segments = []
     delta2_mfcc_segments = []
     fundamental_frequency_segments = []
+    hnr_segments = []
+
     filename = folder_path + r'\\' + file_path
     age = get_person_age(name, file_path)
     logger.info("GET FEATURES | %s/%d: starting feature collection", name, age)
@@ -114,7 +131,9 @@ def get_features_multiprocessing(name, folder_path, file_path):
     n_fft = 2048
 
     duration = librosa.get_duration(signal, sr=sr)
-    num_segments = min(10, math.ceil(1/6 * duration))
+    # min divide recording into 10 segments and max into 100 -> min(100, max(10,g(x)))
+    # g(x) = 1/6 * recording time -> 60 seconds recording gives 10 segments
+    num_segments = min(max(10, math.ceil(1/6 * duration)), 100)
     num_samples_per_segment = int((sr * duration) / num_segments)
     expected_vectors_per_segment = math.ceil(num_samples_per_segment / hop_length)
 
@@ -123,6 +142,9 @@ def get_features_multiprocessing(name, folder_path, file_path):
         start_sample = num_samples_per_segment * s
         finish_sample = start_sample + num_samples_per_segment
         sampled_signal = signal[start_sample:finish_sample]
+
+        hnr = HNR(sampled_signal, sr, n_fft)
+        hnr_segments.append(hnr)
 
         fundamental_frequency = librosa.pyin(sampled_signal,
                                              fmin=librosa.note_to_hz('C2'),
@@ -159,6 +181,7 @@ def get_features_multiprocessing(name, folder_path, file_path):
                 "mfcc": [],
                 "delta_mfcc": [],
                 "delta2_mfcc": [],
+                "hnr": [],
             }
         data["name"].append(name)
         data["sr"].append(sr)
@@ -166,6 +189,7 @@ def get_features_multiprocessing(name, folder_path, file_path):
         data["mfcc"].append(mfcc_segments)
         data["delta_mfcc"].append(delta_mfcc_segments)
         data["delta2_mfcc"].append(delta2_mfcc_segments)
+        data["hnr"].append(hnr_segments)
 
         fp.seek(0)  # file pointer to '0' position
         json.dump(data, fp, indent=4)
@@ -178,10 +202,9 @@ def get_features_multiprocessing(name, folder_path, file_path):
 
 
 @click.command()
-@click.argument('input_filepath', type=click.Path())
-@click.argument('output_filepath', type=click.Path())
-def main(input_filepath=r"D:\PROJEKTY\intonat.dl\data\raw\TCDSA_main",
-         output_filepath=r"D:\PROJEKTY\intonat.dl\data\interim\data.json"):
+@click.argument('input_filepath', type=click.Path(exists=True), default=r"D:\PROJEKTY\intonat.dl\data\raw\TCDSA_main")
+@click.argument('output_filepath', type=click.Path(), default=r"D:\PROJEKTY\intonat.dl\data\interim\data.json")
+def main(input_filepath, output_filepath):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
