@@ -60,6 +60,14 @@ def init_pool(l):
     lock = l
 
 
+def read_data(main_folder_path='TCDSA_main', ):
+    # enumerate is used for debugging and testing
+    for i, folder_path in enumerate(os.listdir(main_folder_path)):
+        if i > 2:
+            break
+        read_all_recordings_of_one_person(main_folder_path, folder_path,)
+
+
 def run_multiprocessing_on_loop_over_path(**kwargs):
     path = kwargs["looping_folder"]
     args = kwargs["args"]
@@ -75,38 +83,30 @@ def run_multiprocessing_on_loop_over_path(**kwargs):
         pool.starmap(multiprocessing_func, multiprocessing_args)
 
 
-def read_data(main_folder_path='TCDSA_main', ):
-    # enumerate is used for debugging and testing
-    for i, folder_path in enumerate(os.listdir(main_folder_path)):
-        if i > 2:
-            break
-        read_all_recordings_of_one_person(main_folder_path, folder_path,)
-
-
-def read_all_recordings_of_one_person(database_path, folder,):
+def read_all_recordings_of_one_person(database_path, folder):
     start_timer = time.perf_counter()
     name = folder
     logger.info("GET PERSON DATA | %s: starting data collection", name)
     folder_path = database_path + r"\\" + folder
     run_multiprocessing_on_loop_over_path(
         looping_folder=folder_path,
-        args=[name, folder_path, ],
+        args=[name, folder_path],
         func=get_features_multiprocessing,)
     end_timer = time.perf_counter()
     logger.info("GET PERSON DATA | %s: finishing data collection with time: %0.2f s", name, end_timer-start_timer)
 
 
-def HNR(signal, sr, window_length):
+def HNR(signal, sr, n_fft):
     """
     HNR extraction -> https://www.scitepress.org/Papers/2009/15529/15529.pdf
     A NEW ACCURATE METHOD OF HARMONIC-TO-NOISERATIO EXTRACTION
     Ricardo J. T. de Sousa - School of Engineering , University of Porto, Rua Roberto Frias, Porto, Portugal
     Robert Komar implementation 2021
     """
-    h_range = range(window_length/2)
-    s = np.abs(librosa.stft(signal))
+    h_range = n_fft//2
+    s = np.abs(librosa.stft(signal, n_fft=n_fft))
     fft_freqs = librosa.fft_frequencies(sr=sr)
-    s_harm = librosa.interp_harmonics(s, fft_freqs, h_range, axis=0)
+    s_harm = librosa.interp_harmonics(s, fft_freqs, range(h_range), axis=0)
     noise_spec = s[h_range::] - s_harm
     return 10*np.log(np.sum(s_harm**2) / np.sum(noise_spec**2))
 
