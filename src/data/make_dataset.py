@@ -96,7 +96,7 @@ def read_all_recordings_of_one_person(database_path, folder):
     logger.info("GET PERSON DATA | %s: finishing data collection with time: %0.2f s", name, end_timer-start_timer)
 
 
-def HNR(signal, sr, n_fft):
+def HNR_RJT(signal, sr, n_fft):
     """
     HNR extraction -> https://www.scitepress.org/Papers/2009/15529/15529.pdf
     A NEW ACCURATE METHOD OF HARMONIC-TO-NOISERATIO EXTRACTION
@@ -109,6 +109,23 @@ def HNR(signal, sr, n_fft):
     s_harm = librosa.interp_harmonics(s, fft_freqs, range(h_range), axis=0)
     noise_spec = s[h_range::] - s_harm
     return 10*np.log(np.sum(s_harm**2) / np.sum(noise_spec**2))
+
+
+def HNR(signal, sr, pitch_period):
+    # harmonics-to-noise ratio implementation with help of
+    # https://github.com/eesungkim/Speech_Emotion_Recognition_DNN-ELM/blob/master/utils/speech_features.py
+    def autocorrelation(s):
+        x = s-np.mean(s)
+        correlation = np.correlate(x, x, mode='ful') / np.sum(x**2)
+        n = len(correlation)//2
+        return correlation[n::]
+
+    t = int(sr*pitch_period)
+    acf = autocorrelation(signal)
+    t0 = acf[0]
+    t1 = acf[t]
+
+    return 10*np.log(np.abs(t1/(t0-t1)))
 
 
 def get_features_multiprocessing(name, folder_path, file_path):
@@ -143,15 +160,18 @@ def get_features_multiprocessing(name, folder_path, file_path):
         finish_sample = start_sample + num_samples_per_segment
         sampled_signal = signal[start_sample:finish_sample]
 
-        hnr = HNR(sampled_signal, sr, n_fft)
-        hnr_segments.append(hnr)
+        fundamental_frequency, _, _ = librosa.pyin(sampled_signal,
+                                                   fmin=librosa.note_to_hz('C2'),
+                                                   fmax=librosa.note_to_hz('C7'),
+                                                   hop_length=hop_length,)
+        fundamental_frequency_segments.append(fundamental_frequency.tolist())
 
-        fundamental_frequency = librosa.pyin(sampled_signal,
-                                             fmin=librosa.note_to_hz('C2'),
-                                             fmax=librosa.note_to_hz('C7'),
-                                             hop_length=hop_length,
-                                             )
-        fundamental_frequency_segments.append(fundamental_frequency)
+        # getting rid of nans from f0
+        fundamental_frequency = fundamental_frequency[~np.isnan(fundamental_frequency)]
+        # pitch period is inverse f0
+        pitch_period = 1./np.mean(fundamental_frequency)
+        hnr = HNR(sampled_signal, sr, pitch_period)
+        hnr_segments.append(hnr)
 
         mfcc = librosa.feature.mfcc(sampled_signal,
                                     n_fft=n_fft,
