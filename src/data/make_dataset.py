@@ -63,8 +63,8 @@ def init_pool(l):
 def read_data(main_folder_path='TCDSA_main', ):
     # enumerate is used for debugging and testing
     for i, folder_path in enumerate(os.listdir(main_folder_path)):
-        if i > 2:
-            break
+        #if i > 2:
+        #    break
         read_all_recordings_of_one_person(main_folder_path, folder_path,)
 
 
@@ -209,6 +209,7 @@ def get_features_multiprocessing(name, folder_path, file_path):
         data["mfcc"].append(mfcc_segments)
         data["delta_mfcc"].append(delta_mfcc_segments)
         data["delta2_mfcc"].append(delta2_mfcc_segments)
+        data["fundamental_frequency"].append(fundamental_frequency_segments)
         data["hnr"].append(hnr_segments)
 
         fp.seek(0)  # file pointer to '0' position
