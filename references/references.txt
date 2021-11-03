@@ -1,0 +1,8 @@
+Data segmentation in order to get more data - https://youtu.be/szyGiObZymo
+Librosa - https://librosa.org/doc/main/index.html
+"A NEW ACCURATE METHOD OF HARMONIC-TO-NOISERATIO EXTRACTION", Ricardo J. T. de Sousa - https://www.scitepress.org/Papers/2009/15529/15529.pdf
+"Harmonics-to-noise ratio: An index of vocal aging", Carole Ferrand - https://www.researchgate.net/publication/10963342_Harmonics-to-noise_ratio_An_index_of_vocal_aging
+"Voice gender perception by cochlear implantees",Evan Balaban -https://www.researchgate.net/publication/26702917_Voice_gender_perception_by_cochlear_implantees
+"Automatic Recognition, Identifying Speaker Emotion and Speaker Age Classification using Voice Signal", Dr. A. S Umesh, Prof. Ramesh Patole, Prof. Krishna Kulkarni
+"Audio Features in Music Information Retrieval", Daniel Grzywczak and Grzegorz Gwardys
+"Age and gender classification using fusion of acoustic and prosodic features" - DOI: 10.21437/Interspeech.2010-745 - https://www.researchgate.net/publication/221479145_Age_and_gender_classification_using_fusion_of_acoustic_and_prosodic_features
