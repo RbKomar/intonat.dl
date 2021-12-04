@@ -6,3 +6,4 @@ Librosa - https://librosa.org/doc/main/index.html
 "Automatic Recognition, Identifying Speaker Emotion and Speaker Age Classification using Voice Signal", Dr. A. S Umesh, Prof. Ramesh Patole, Prof. Krishna Kulkarni
 "Audio Features in Music Information Retrieval", Daniel Grzywczak and Grzegorz Gwardys
 "Age and gender classification using fusion of acoustic and prosodic features" - DOI: 10.21437/Interspeech.2010-745 - https://www.researchgate.net/publication/221479145_Age_and_gender_classification_using_fusion_of_acoustic_and_prosodic_features
+[1]https://arxiv.org/pdf/1801.05134.pdf - why i am not using dropout with batch normalization

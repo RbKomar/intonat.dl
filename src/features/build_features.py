@@ -25,6 +25,8 @@ def prepare_datasets(data, features):
     X = df.drop("age", axis=1)
     return X, y
 
+def load_data():
+    pass
 
 def main():
     data = load_interim_dataset()

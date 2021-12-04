@@ -160,18 +160,6 @@ def get_features_multiprocessing(name, folder_path, file_path):
         finish_sample = start_sample + num_samples_per_segment
         sampled_signal = signal[start_sample:finish_sample]
 
-        fundamental_frequency, _, _ = librosa.pyin(sampled_signal,
-                                                   fmin=librosa.note_to_hz('C2'),
-                                                   fmax=librosa.note_to_hz('C7'),
-                                                   hop_length=hop_length,)
-        fundamental_frequency_segments.append(fundamental_frequency.tolist())
-
-        # getting rid of nans from f0
-        fundamental_frequency = fundamental_frequency[~np.isnan(fundamental_frequency)]
-        # pitch period is inverse f0
-        pitch_period = 1./np.mean(fundamental_frequency)
-        hnr = HNR(sampled_signal, sr, pitch_period)
-        hnr_segments.append(hnr)
 
         mfcc = librosa.feature.mfcc(sampled_signal,
                                     n_fft=n_fft,
@@ -188,11 +176,25 @@ def get_features_multiprocessing(name, folder_path, file_path):
             delta_mfcc_segments.append(delta_mfcc.tolist())
             delta2_mfcc_segments.append(delta2_mfcc.tolist())
 
+            fundamental_frequency, _, _ = librosa.pyin(sampled_signal,
+                                                       fmin=librosa.note_to_hz('C2'),
+                                                       fmax=librosa.note_to_hz('C7'),
+                                                       hop_length=hop_length,)
+            fundamental_frequency_segments.append(np.mean(fundamental_frequency))
+
+            # getting rid of nans from f0
+            fundamental_frequency = fundamental_frequency[~np.isnan(fundamental_frequency)]
+            # pitch period is inverse f0
+            pitch_period = 1./np.mean(fundamental_frequency)
+            hnr = HNR(sampled_signal, sr, pitch_period)
+            hnr_segments.append(hnr)
+
+
     lock.acquire()
     with open(r"D:\PROJEKTY\intonat.dl\data\interim\data.json", "r+") as fp:
         try:
             data = json.load(fp)
-        except json.decoder.JSONDecodeError as jde:
+        except json.decoder.JSONDecodeError:
             data = {
                 "name": [],
                 "sr": [],
