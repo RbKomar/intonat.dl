@@ -47,14 +47,15 @@ class CVAE:
 
 
     def train(self, x_train, y_train, batch_size, num_epochs):
-        def scheduler(epoch, lr):
-            if epoch < 10:
-                return lr
-            else:
-                return lr * K.exp(-0.1)
+        def exponential_decay(lr0):
+            def exponential_decay_fn(epoch):
+                return lr0 * 0.1**(epoch / 20)
+            return exponential_decay_fn
+
+        exponential_decay_fn = exponential_decay(lr0=0.01)
 
         callbacks = [
-            LearningRateScheduler(scheduler),
+            LearningRateScheduler(exponential_decay_fn),
             EarlyStopping(monitor="loss", patience=4),
             ModelCheckpoint(filepath='model.{epoch:02d}-{val_loss:.2f}.h5'),
             TensorBoard(r"logs/")
