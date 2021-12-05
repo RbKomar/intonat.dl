@@ -63,9 +63,9 @@ def init_pool(l):
 def read_data(main_folder_path='TCDSA_main', ):
     # enumerate is used for debugging and testing
     for i, folder_path in enumerate(os.listdir(main_folder_path)):
-        #if i > 2:
+        # if i > 2:
         #    break
-        read_all_recordings_of_one_person(main_folder_path, folder_path,)
+        read_all_recordings_of_one_person(main_folder_path, folder_path, )
 
 
 def run_multiprocessing_on_loop_over_path(**kwargs):
@@ -91,9 +91,9 @@ def read_all_recordings_of_one_person(database_path, folder):
     run_multiprocessing_on_loop_over_path(
         looping_folder=folder_path,
         args=[name, folder_path],
-        func=get_features_multiprocessing,)
+        func=get_features_multiprocessing, )
     end_timer = time.perf_counter()
-    logger.info("GET PERSON DATA | %s: finishing data collection with time: %0.2f s", name, end_timer-start_timer)
+    logger.info("GET PERSON DATA | %s: finishing data collection with time: %0.2f s", name, end_timer - start_timer)
 
 
 def HNR_RJT(signal, sr, n_fft):
@@ -103,29 +103,29 @@ def HNR_RJT(signal, sr, n_fft):
     Ricardo J. T. de Sousa - School of Engineering , University of Porto, Rua Roberto Frias, Porto, Portugal
     Robert Komar implementation 2021
     """
-    h_range = n_fft//2
+    h_range = n_fft // 2
     s = np.abs(librosa.stft(signal, n_fft=n_fft))
     fft_freqs = librosa.fft_frequencies(sr=sr)
     s_harm = librosa.interp_harmonics(s, fft_freqs, range(h_range), axis=0)
     noise_spec = s[h_range::] - s_harm
-    return 10*np.log(np.sum(s_harm**2) / np.sum(noise_spec**2))
+    return 10 * np.log(np.sum(s_harm ** 2) / np.sum(noise_spec ** 2))
 
 
 def HNR(signal, sr, pitch_period):
     # harmonics-to-noise ratio implementation with help of
     # https://github.com/eesungkim/Speech_Emotion_Recognition_DNN-ELM/blob/master/utils/speech_features.py
     def autocorrelation(s):
-        x = s-np.mean(s)
-        correlation = np.correlate(x, x, mode='ful') / np.sum(x**2)
-        n = len(correlation)//2
+        x = s - np.mean(s)
+        correlation = np.correlate(x, x, mode='ful') / np.sum(x ** 2)
+        n = len(correlation) // 2
         return correlation[n::]
 
-    t = int(sr*pitch_period)
+    t = int(sr * pitch_period)
     acf = autocorrelation(signal)
     t0 = acf[0]
     t1 = acf[t]
 
-    return 10*np.log(np.abs(t1/(t0-t1)))
+    return 10 * np.log(np.abs(t1 / (t0 - t1)))
 
 
 def get_features_multiprocessing(name, folder_path, file_path):
@@ -150,7 +150,7 @@ def get_features_multiprocessing(name, folder_path, file_path):
     duration = librosa.get_duration(signal, sr=sr)
     # min divide recording into 10 segments and max into 100 -> min(100, max(10,g(x)))
     # g(x) = 1/6 * recording time -> 60 seconds recording gives 10 segments
-    num_segments = min(max(10, math.ceil(1/6 * duration)), 100)
+    num_segments = min(max(10, math.ceil(1 / 6 * duration)), 100)
     num_samples_per_segment = int((sr * duration) / num_segments)
     expected_vectors_per_segment = math.ceil(num_samples_per_segment / hop_length)
 
@@ -159,7 +159,6 @@ def get_features_multiprocessing(name, folder_path, file_path):
         start_sample = num_samples_per_segment * s
         finish_sample = start_sample + num_samples_per_segment
         sampled_signal = signal[start_sample:finish_sample]
-
 
         mfcc = librosa.feature.mfcc(sampled_signal,
                                     n_fft=n_fft,
@@ -179,16 +178,15 @@ def get_features_multiprocessing(name, folder_path, file_path):
             fundamental_frequency, _, _ = librosa.pyin(sampled_signal,
                                                        fmin=librosa.note_to_hz('C2'),
                                                        fmax=librosa.note_to_hz('C7'),
-                                                       hop_length=hop_length,)
+                                                       hop_length=hop_length, )
             fundamental_frequency_segments.append(np.mean(fundamental_frequency))
 
             # getting rid of nans from f0
             fundamental_frequency = fundamental_frequency[~np.isnan(fundamental_frequency)]
             # pitch period is inverse f0
-            pitch_period = 1./np.mean(fundamental_frequency)
+            pitch_period = 1. / np.mean(fundamental_frequency)
             hnr = HNR(sampled_signal, sr, pitch_period)
             hnr_segments.append(hnr)
-
 
     lock.acquire()
     with open(r"D:\PROJEKTY\intonat.dl\data\interim\data.json", "r+") as fp:
@@ -221,7 +219,7 @@ def get_features_multiprocessing(name, folder_path, file_path):
 
     end_timer = time.perf_counter()
     logger.info("GET FEATURES | %s/%d: finishing feature collection with time: %0.2f s",
-                name, age, end_timer-start_timer)
+                name, age, end_timer - start_timer)
 
 
 @click.command()
@@ -237,7 +235,7 @@ def main(input_filepath, output_filepath):
     start_timer = time.perf_counter()
     read_data(input_filepath)
     end_timer = time.perf_counter()
-    logger.info("Finishing data pre-processing in %d s", end_timer-start_timer)
+    logger.info("Finishing data pre-processing in %d s", end_timer - start_timer)
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 import json
+from sklearn.preprocessing import MinMaxScaler
 
 
 def load_interim_dataset(file_path=r"D:\PROJEKTY\intonat.dl\data\interim\data.json"):
@@ -23,17 +24,21 @@ def prepare_datasets(data, features):
             df[f"{feature}_{str(str(statistic).split(' ')[1])}"] = df[feature].map(lambda x: statistic(x))
     y = df["age"]
     X = df.drop("age", axis=1)
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(X)
     return X, y
 
-def load_data():
-    pass
 
-def main():
+def load_data():
     data = load_interim_dataset()
     X, y = prepare_datasets(data, [])
-    print(X.head())
-    print(y.head())
     X_train, y_train, X_test, y_test = train_test_split(X, y, test_size=0.2, random_state=24, stratify=y)
+    return X_train, y_train, X_test, y_test
+
+
+def main():
+    X_train, y_train, X_test, y_test = load_data()
+    print(X_train.head())
 
 
 if __name__ == "__main__":

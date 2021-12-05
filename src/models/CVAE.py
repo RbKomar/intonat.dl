@@ -45,11 +45,11 @@ class CVAE:
         self.decoder.summary()
         self.model.summary()
 
-
-    def train(self, x_train, y_train, batch_size, num_epochs):
+    def train(self, x_train, batch_size, num_epochs):
         def exponential_decay(lr0):
             def exponential_decay_fn(epoch):
-                return lr0 * 0.1**(epoch / 20)
+                return lr0 * 0.1 ** (epoch / 20)
+
             return exponential_decay_fn
 
         exponential_decay_fn = exponential_decay(lr0=0.01)
@@ -62,7 +62,7 @@ class CVAE:
         ]
         with mlflow.start_run():
             self.model.fit(x_train,
-                           y_train,
+                           x_train,
                            batch_size=batch_size,
                            epochs=num_epochs,
                            shuffle=True,
@@ -78,9 +78,10 @@ class CVAE:
         return kl_loss
 
     def _combined_loss(self, y_target, y_predict):
+        # possible to add regularization parameter in combined loss
         reconstruction_loss = self._reconstruction_loss(y_target, y_predict)
         kl_loss = self._kl_loss(y_target, y_predict)
-        return reconstruction_loss + kl_loss
+        return  reconstruction_loss + kl_loss
 
     def compile(self, ):
         optimizer = Adamax()
