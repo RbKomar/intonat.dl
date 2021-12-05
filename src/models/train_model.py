@@ -19,7 +19,7 @@ def build_model(hp):
         conv_strides.append(hp.Choice('conv_' + str(i) + '_strides', values=[1, 2]))
         latent_space_dim = hp.Int("latent_spade_dimension", min_value=16, max_value=128, step=8)
     model = CVAE(
-        input_shape=(28, 28, 1),
+        input_shape=(212, 15, 3),
         conv_filters=conv_filters,
         conv_kernels=conv_kernels,
         conv_strides=conv_strides,

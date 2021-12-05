@@ -1,7 +1,7 @@
 from tensorflow.keras import Model
 from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Input, Conv2D, Dropout, Flatten, Dense, \
-    Reshape, Conv2DTranspose, Lambda
+from tensorflow.keras.layers import Input, DepthwiseConv2D, Dropout, Flatten, Dense, \
+    Reshape, Conv2DTranspose, Lambda, Concatenate
 from tensorflow.keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoint, TensorBoard
 from tensorflow.keras.optimizers import Adamax
 import mlflow
@@ -61,8 +61,10 @@ class CVAE:
             TensorBoard(r"logs/")
         ]
         with mlflow.start_run():
-            self.model.fit(x_train,
-                           x_train,
+            x_train_3d = x_train[["mfcc", "delta_mfcc", "delta2_mfcc"]]
+            x_train_1d = x_train.drop(["mfcc", "delta_mfcc", "delta2_mfcc"], axis=1)
+            self.model.fit({"encoder_input": x_train_3d, "features_1d": x_train_1d},
+                           x_train_3d,
                            batch_size=batch_size,
                            epochs=num_epochs,
                            shuffle=True,
@@ -81,7 +83,7 @@ class CVAE:
         # possible to add regularization parameter in combined loss
         reconstruction_loss = self._reconstruction_loss(y_target, y_predict)
         kl_loss = self._kl_loss(y_target, y_predict)
-        return  reconstruction_loss + kl_loss
+        return reconstruction_loss + kl_loss
 
     def compile(self, ):
         optimizer = Adamax()
@@ -115,7 +117,7 @@ class CVAE:
         conv 2d + SeLU & Lecun Normalization + Dropout.
         """
         layer_number = layer_index + 1
-        conv_layer = Conv2D(
+        conv_layer = DepthwiseConv2D(
             filters=self.conv_filters[layer_index],
             kernel_size=self.conv_kernels[layer_index],
             strides=self.conv_strides[layer_index],
@@ -133,7 +135,9 @@ class CVAE:
         layer).
         """
         self._shape_before_bottleneck = K.int_shape(x)[1:]
+        features_1d = Input(8, name="features_1d")
         x = Flatten()(x)
+        x = Concatenate(axis=1)([x, features_1d])
         self.mu = Dense(self.latent_space_dim, name="mu")(x)
         self.log_vars = Dense(self.latent_space_dim,
                               name="log_variance")(x)

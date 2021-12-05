@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 import json
 from sklearn.preprocessing import MinMaxScaler
+import configparser
+config = configparser.ConfigParser()
+config.read(r'../../config.ini')
 
 
 def load_interim_dataset(file_path=r"D:\PROJEKTY\intonat.dl\data\interim\data.json"):
@@ -23,7 +26,7 @@ def prepare_datasets(data, features):
         for statistic in statistics:
             df[f"{feature}_{str(str(statistic).split(' ')[1])}"] = df[feature].map(lambda x: statistic(x))
     df.to_feather(r"D:\PROJEKTY\intonat.dl\data\interim\dataset.ftr")
-    bins = pd.IntervalIndex.from_tuples([(x, x+10) for x in range(19,97,10)], closed='left')
+    bins = pd.IntervalIndex.from_tuples([(x, x + 10) for x in range(19, 97, 10)], closed='left')
     df["age"] = pd.cut(df["age"], bins)
     y = df["age"]
     X = df.drop("age", axis=1)
