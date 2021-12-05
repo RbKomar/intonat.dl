@@ -7,3 +7,9 @@ Librosa - https://librosa.org/doc/main/index.html
 "Audio Features in Music Information Retrieval", Daniel Grzywczak and Grzegorz Gwardys
 "Age and gender classification using fusion of acoustic and prosodic features" - DOI: 10.21437/Interspeech.2010-745 - https://www.researchgate.net/publication/221479145_Age_and_gender_classification_using_fusion_of_acoustic_and_prosodic_features
 [1]https://arxiv.org/pdf/1801.05134.pdf - why i am not using dropout with batch normalization
+@misc{omalley2019kerastuner,
+    title        = {KerasTuner},
+    author       = {O'Malley, Tom and Bursztein, Elie and Long, James and Chollet, Fran\c{c}ois and Jin, Haifeng and Invernizzi, Luca and others},
+    year         = 2019,
+    howpublished = {\url{https://github.com/keras-team/keras-tuner}}
+}

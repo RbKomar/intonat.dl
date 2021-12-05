@@ -2,6 +2,8 @@ from CVAE import CVAE
 from ..features.build_features import load_data
 import keras_tuner as kt
 from datetime import datetime
+import tensorflow as tf
+
 BATCH_SIZE = 64
 EPOCHS = 150
 
@@ -37,6 +39,8 @@ def train_vae(train, test, batch_size, epochs):
 
 
 if __name__ == "__main__":
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
     x_train, _, x_test, _ = load_data()
-    best_model = train_vae(x_train[:10000], BATCH_SIZE, EPOCHS)
+    best_model = train_vae(x_train[:10000], x_test, BATCH_SIZE, EPOCHS)
     best_model.save(r"../../models/" + datetime.now().strftime("%Y_%m_%d-%I:%M:%S_%p"))
