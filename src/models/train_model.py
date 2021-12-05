@@ -1,6 +1,6 @@
 from CVAE import CVAE
 from ..features.build_features import load_data
-
+import keras_tuner as kt
 BATCH_SIZE = 64
 EPOCHS = 150
 
@@ -25,13 +25,16 @@ def build_model(hp):
     return model
 
 
-def train(x_train, batch_size, epochs):
-    autoencoder.summary()
-    autoencoder.compile()
-    autoencoder.train(x_train, x_train, batch_size, epochs)
-    return autoencoder
+def train_vae(train, test, batch_size, epochs):
+    tuner = kt.RandomSearch(
+        build_model,
+        objective='val_loss',
+        max_trials=5)
+    tuner.search(train, train, batch_size=batch_size, epochs=epochs, validation_data=(test, test))
+    best_model = tuner.get_best_models()[0]
+    return best_model
 
 
 if __name__ == "__main__":
-    x_train, _, _, _ = load_data()
-    autoencoder = train(x_train[:10000], BATCH_SIZE, EPOCHS)
+    x_train, _, x_test, _ = load_data()
+    best_model = train_vae(x_train[:10000], BATCH_SIZE, EPOCHS)
